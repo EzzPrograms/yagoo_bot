@@ -1,4 +1,5 @@
-import bs4, aiohttp, discord, asyncio, json, yaml, logging, sys, imgkit, os
+import aiohttp, discord, asyncio, json, yaml, logging, sys, imgkit, os
+from datetime import datetime
 from discord.ext.commands.core import command
 from itertools import islice
 from discord import Webhook, AsyncWebhookAdapter

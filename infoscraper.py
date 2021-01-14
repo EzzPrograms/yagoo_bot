@@ -1,4 +1,5 @@
 import json, aiohttp, asyncio, re
+import logging
 from bs4 import BeautifulSoup
 from typing import Union
 
@@ -10,7 +11,7 @@ async def streamInfo(channelId: Union[str, int]):
 
     async with aiohttp.ClientSession() as session:
         async with session.get(f'https://www.youtube.com/channel/{channelId}/live?hl=en-US') as r:
-            soup = BeautifulSoup(await r.text(), "lxml")
+            soup = BeautifulSoup(await r.text(), "html5lib")
             scripts = soup.find_all("script")
             for script in scripts:
                 if ("var ytInitialData" in script.getText()) or ('window["ytInitialData"]' in script.getText()):
@@ -51,7 +52,7 @@ async def channelInfo(channelId: Union[str, int]):
     
     async with aiohttp.ClientSession() as session:
         async with session.get(f'https://www.youtube.com/channel/{channelId}?hl=en-US') as r:
-            soup = BeautifulSoup(await r.text(), "lxml")
+            soup = BeautifulSoup(await r.text(), "html5lib")
             scripts = soup.find_all("script")
             for script in scripts:
                 if ("var ytInitialData" in script.getText()) or ('window["ytInitialData"]' in script.getText()):
