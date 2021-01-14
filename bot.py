@@ -1,4 +1,4 @@
-import aiohttp, discord, asyncio, json, yaml, logging, sys, imgkit, os
+import aiohttp, discord, asyncio, json, yaml, logging, sys, imgkit, os, pyimgur
 from datetime import datetime
 from discord.ext.commands.core import command
 from itertools import islice
@@ -114,12 +114,21 @@ async def streamcheck(ctx = None, test: bool = False, loop: bool = False):
         await ctx.send(stext.strip())
         await ctx.send(stext2.strip())
 
+
+# Use own image hosting server instead, try and find a faster responding server.
 async def streamNotify(cData):
     with open("servers.json", encoding="utf-8") as f:
         servers = json.load(f)
-    for server in servers:
-        for channel in servers[server]:
-            for ytch in cData:
+    for ytch in cData:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f'https://img.youtube.com/vi/{cData[ytch]["videoId"]}/maxresdefault.jpg') as r:
+                thumbnail = await r.read()
+                with open(f'thumbnails/{ytch}.png', "wb") as f:
+                    f.write(thumbnail)
+        imgur = pyimgur.Imgur(settings["imgur"], settings["imgursecret"])
+        ytimg = imgur.upload_image(f'thumbnails/{ytch}.png', title=f'{datetime.now().strftime("%y%m%d-%H%M")}-{ytch}')
+        for server in servers:
+            for channel in servers[server]:
                 if ytch not in servers[server][channel]["notified"] and ytch in servers[server][channel]["subbed"]:
                     servers[server][channel]["notified"][ytch] = {
                         "videoId": ""
@@ -129,12 +138,11 @@ async def streamNotify(cData):
                     async with aiohttp.ClientSession() as session:
                         embed = discord.Embed(title=f'{cData[ytch]["videoTitle"]}', url=f'https://youtube.com/watch?v={cData[ytch]["videoId"]}')
                         embed.description = f'Started streaming {cData[ytch]["timeText"]}'
-                        embed.set_image(url=f'https://img.youtube.com/vi/{cData[ytch]["videoId"]}/maxresdefault.jpg')
+                        embed.set_image(url=ytimg.link)
                         webhook = Webhook.from_url(whurl, adapter=AsyncWebhookAdapter(session))
                         await webhook.send(f'New livestream from {cData[ytch]["name"]}!', embed=embed, username=cData[ytch]["name"], avatar_url=cData[ytch]["image"])
                         servers[server][channel]["notified"][ytch]["videoId"] = cData[ytch]["videoId"]
-    with open("servers.json", "w", encoding="utf-8") as f:
-        servers = json.dump(servers, f, indent=4)
+
 
 async def streamClean(cData):
     with open("servers.json", encoding="utf-8") as f:
